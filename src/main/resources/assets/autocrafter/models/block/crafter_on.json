@@ -1,0 +1,9 @@
+{
+  "parent": "autocrafter:block/crafter",
+  "textures": {
+    "side": "autocrafter:block/crafter_side_on",
+    "top": "autocrafter:block/crafter_top_on",
+    "back": "autocrafter:block/crafter_back_on",
+    "front": "autocrafter:block/crafter_front_on"
+  }
+}
