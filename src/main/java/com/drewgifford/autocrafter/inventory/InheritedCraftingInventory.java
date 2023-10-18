@@ -12,61 +12,54 @@ import java.util.Iterator;
 
 public class InheritedCraftingInventory extends CraftingInventory implements Inventory {
 
-    public DefaultedList<ItemStack> stacks;
+    public Inventory inventory;
     private final ScreenHandler handler;
 
-    public InheritedCraftingInventory(DefaultedList<ItemStack> stacks, ScreenHandler handler){
+    public InheritedCraftingInventory(Inventory inventory, ScreenHandler handler){
         super(handler, 3, 3);
-        this.stacks = stacks;
+        this.inventory = inventory;
         this.handler = handler;
     }
 
     @Override
     public boolean isEmpty() {
-        Iterator<ItemStack> var1 = this.stacks.iterator();
-
-        ItemStack itemStack;
-        do {
-            if (!var1.hasNext()) {
-                return true;
-            }
-
-            itemStack = var1.next();
-        } while(itemStack.isEmpty());
-
-        return false;
+        return this.inventory.isEmpty();
     }
 
     @Override
     public ItemStack getStack(int slot) {
-        return slot >= this.size() ? ItemStack.EMPTY : this.stacks.get(slot);
+        return this.inventory.getStack(slot);
     }
 
     @Override
     public int size() {
-        return this.stacks.size();
+        return this.inventory.size();
     }
 
     @Override
     public ItemStack removeStack(int slot) {
-        return Inventories.removeStack(this.stacks, slot);
+        return this.inventory.removeStack(slot);
     }
 
     @Override
     public ItemStack removeStack(int slot, int amount) {
-        ItemStack itemStack = Inventories.splitStack(this.stacks, slot, amount);
-        if (!itemStack.isEmpty()) {
+
+        ItemStack stack = this.inventory.removeStack(slot, amount);
+
+        if(!stack.isEmpty()){
             if(this.handler != null){
                 this.handler.onContentChanged(this);
             }
-        }
+        };
 
-        return itemStack;
+        return stack;
     }
 
     @Override
     public void setStack(int slot, ItemStack stack) {
-        this.stacks.set(slot, stack);
+
+        this.inventory.setStack(slot, stack);
+
         if(this.handler != null){
             this.handler.onContentChanged(this);
         }
@@ -74,16 +67,20 @@ public class InheritedCraftingInventory extends CraftingInventory implements Inv
 
     @Override
     public void markDirty() {
+        this.inventory.markDirty();
+        if(this.handler != null){
+            this.handler.onContentChanged(this);
+        }
 
     }
 
     @Override
     public boolean canPlayerUse(PlayerEntity player) {
-        return true;
+        return this.inventory.canPlayerUse(player);
     }
 
     @Override
     public void clear() {
-        this.stacks = DefaultedList.ofSize(this.stacks.size(), ItemStack.EMPTY);
+        this.inventory.clear();
     }
 }

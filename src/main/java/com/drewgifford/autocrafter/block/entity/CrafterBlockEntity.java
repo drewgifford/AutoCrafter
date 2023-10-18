@@ -11,9 +11,12 @@ import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.DispenserBlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.ContainerLock;
 import net.minecraft.inventory.RecipeInputInventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.NbtElement;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.recipe.CraftingRecipe;
 import net.minecraft.recipe.RecipeEntry;
@@ -29,20 +32,19 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 public class CrafterBlockEntity extends DispenserBlockEntity implements ExtendedScreenHandlerFactory, SidedInventory {
 
-    private final DefaultedList<Boolean> lockedSlots;
+    private final DefaultedList<Boolean> lockedSlots = DefaultedList.ofSize(9, false);;
 
 
     public CrafterBlockEntity(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
         super(blockEntityType, blockPos, blockState);
 
-        this.lockedSlots = DefaultedList.ofSize(9, false);
-
-        this.lockedSlots.set(3, true);
     }
 
     public CrafterBlockEntity(BlockPos pos, BlockState state){
@@ -92,6 +94,11 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
         if(!result.isEmpty()){
 
             items.addAll(remaining);
+
+            for(ItemStack stack : this.getInvStackList()){
+                stack.decrement(1);
+            }
+
             this.markDirty();
 
         }
@@ -147,7 +154,10 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
     }
 
     public void setLocked(int slot, boolean value) {
+
         this.lockedSlots.set(slot, value);
+        this.markDirty();
+
     }
 
     public int getComparatorOutput() {
@@ -156,4 +166,38 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
 
         return MathHelper.clamp((int)value, 0, 9);
     }
+
+    @Override
+    public void readNbt(NbtCompound nbt) {
+        super.readNbt(nbt);
+
+        if (nbt.contains("LockedSlots", NbtElement.INT_ARRAY_TYPE)) {
+
+            List<Integer> list = Arrays.stream(nbt.getIntArray("LockedSlots")).boxed().toList();
+
+            AutoCrafter.LOGGER.info("Loading Locked slots: " + Arrays.toString(list.toArray()));
+
+            for(int i = 0; i < this.lockedSlots.size(); i++){
+                this.setLocked(i, list.get(i) == 1);
+            }
+        }
+    }
+
+    @Override
+    protected void writeNbt(NbtCompound nbt) {
+        super.writeNbt(nbt);
+
+        List<Integer> list = new ArrayList<>();
+
+        for (boolean lockedSlot : this.lockedSlots) {
+            list.add(lockedSlot ? 1 : 0);
+        }
+
+        AutoCrafter.LOGGER.info("Saving Locked slots: " + Arrays.toString(list.toArray()));
+
+        if(!list.isEmpty()){
+            nbt.putIntArray("LockedSlots", list);
+        }
+    }
+
 }

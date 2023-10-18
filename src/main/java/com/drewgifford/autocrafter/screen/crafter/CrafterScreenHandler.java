@@ -46,7 +46,7 @@ public class CrafterScreenHandler extends AbstractRecipeScreenHandler<RecipeInpu
         // Maybe instead of passing in BlockEntity#getItems(), pass in the BlockEntity itself
         // and change the InheritedCraftingInventory to use that inventory instead, only providing
         // methods deriving from there? That should fix the comparator problem. you're doing great!
-        this.input = new InheritedCraftingInventory(this.blockEntity.getItems(), this);
+        this.input = new InheritedCraftingInventory(this.blockEntity, this);
 
 
 
@@ -228,8 +228,6 @@ public class CrafterScreenHandler extends AbstractRecipeScreenHandler<RecipeInpu
         if(!actionType.equals(SlotActionType.PICKUP)) return;
 
         // Slot verification
-
-        AutoCrafter.LOGGER.info("Slot index: " + slotIndex);
 
         if(isValidSlot(slots.get(slotIndex), this)){
             slotIndex = slotIndex - 1; // Correction for weird behavior
