@@ -1,18 +1,18 @@
 package com.drewgifford.autocrafter.block.entity;
 
 import com.drewgifford.autocrafter.AutoCrafter;
-import com.drewgifford.autocrafter.screen.crafter.CrafterScreenHandler;
 import com.drewgifford.autocrafter.block.ModBlocks;
+import com.drewgifford.autocrafter.screen.crafter.CrafterScreenHandler;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import net.minecraft.block.BarrelBlock;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.LecternBlock;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.DispenserBlockEntity;
-import net.minecraft.block.entity.HopperBlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.RecipeInputInventory;
 import net.minecraft.inventory.SidedInventory;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.recipe.CraftingRecipe;
@@ -24,6 +24,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,13 +34,12 @@ import java.util.Optional;
 
 public class CrafterBlockEntity extends DispenserBlockEntity implements ExtendedScreenHandlerFactory, SidedInventory {
 
-    private DefaultedList<ItemStack> output;
-    private DefaultedList<Boolean> lockedSlots;
+    private final DefaultedList<Boolean> lockedSlots;
+
 
     public CrafterBlockEntity(BlockEntityType<?> blockEntityType, BlockPos blockPos, BlockState blockState) {
         super(blockEntityType, blockPos, blockState);
 
-        this.output = DefaultedList.ofSize(1, ItemStack.EMPTY);
         this.lockedSlots = DefaultedList.ofSize(9, false);
 
         this.lockedSlots.set(3, true);
@@ -59,26 +59,17 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
 
         World world = this.getWorld();
 
-        RecipeInputInventory inventory = getRecipeInventory();
+        if(world == null) return null;
 
-        inventory.getInputStacks().forEach((itemStack) -> {
-           AutoCrafter.LOGGER.info(itemStack.toString());
-        });
+        RecipeInputInventory inventory = getRecipeInventory();
 
         Optional<RecipeEntry<CraftingRecipe>> optional = world.getRecipeManager().getFirstMatch(RecipeType.CRAFTING, inventory, world);
 
-        if(!optional.isPresent()) return null;
+        if(optional.isEmpty()) return null;
 
         RecipeEntry<CraftingRecipe> recipeEntry = optional.get();
-        CraftingRecipe recipe = recipeEntry.value();
 
-        AutoCrafter.LOGGER.info("Has recipe!");
-
-        return recipe;
-    }
-
-    public boolean hasRecipe(){
-        return getCurrentRecipe() != null;
+        return recipeEntry.value();
     }
 
     public DefaultedList<ItemStack> getItems(){
@@ -87,11 +78,11 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
 
     public List<ItemStack> craft() {
 
-        List<ItemStack> items = new ArrayList<ItemStack>();
+        List<ItemStack> items = new ArrayList<>();
         CraftingRecipe recipe = getCurrentRecipe();
 
 
-        if(recipe == null) return items;
+        if(recipe == null || world == null) return items;
 
         RecipeInputInventory inventory = getRecipeInventory();
 
@@ -100,10 +91,7 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
 
         if(!result.isEmpty()){
 
-            remaining.forEach((itemStack) -> {
-                items.add(itemStack);
-            });
-
+            items.addAll(remaining);
             this.markDirty();
 
         }
@@ -113,14 +101,6 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
         return items;
 
 
-    }
-
-    public DefaultedList<ItemStack> getOutput(){
-        return this.output;
-    }
-
-    public void setOutput(DefaultedList<ItemStack> output){
-        this.output = output;
     }
 
     public DefaultedList<Boolean> getLockedSlots(){
@@ -147,7 +127,7 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
 
     @Override
     public int[] getAvailableSlots(Direction side) {
-        List<Integer> availableSlots = new ArrayList<Integer>();
+        List<Integer> availableSlots = new ArrayList<>();
 
         for(int i = 0; i < this.getInvStackList().size(); i++){
             if(!this.lockedSlots.get(i)) availableSlots.add(i);
@@ -158,10 +138,7 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
 
     @Override
     public boolean canInsert(int slot, ItemStack stack, @Nullable Direction dir) {
-        if(this.getInvStackList().get(slot).isEmpty() && !this.lockedSlots.get(slot)) {
-            return true;
-        }
-        return false;
+        return this.getInvStackList().get(slot).isEmpty() && !this.lockedSlots.get(slot);
     }
 
     @Override
@@ -171,5 +148,12 @@ public class CrafterBlockEntity extends DispenserBlockEntity implements Extended
 
     public void setLocked(int slot, boolean value) {
         this.lockedSlots.set(slot, value);
+    }
+
+    public int getComparatorOutput() {
+
+        long value = this.getItems().stream().filter(stack -> !stack.isEmpty()).count();
+
+        return MathHelper.clamp((int)value, 0, 9);
     }
 }

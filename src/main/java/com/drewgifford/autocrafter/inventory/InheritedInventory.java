@@ -3,35 +3,25 @@ package com.drewgifford.autocrafter.inventory;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.inventory.Inventories;
 import net.minecraft.inventory.Inventory;
-import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.util.collection.DefaultedList;
 
-import java.util.Collection;
 import java.util.Iterator;
 
 public class InheritedInventory implements Inventory {
 
     public DefaultedList<ItemStack> stacks;
-    private ScreenHandler handler;
-
-    public InheritedInventory(DefaultedList<ItemStack> stacks){
-        this(stacks, null);
-    }
+    private final ScreenHandler handler;
 
     public InheritedInventory(DefaultedList<ItemStack> stacks, ScreenHandler handler){
         this.stacks = stacks;
         this.handler = handler;
     }
 
-    public DefaultedList<ItemStack> getItems() {
-        return this.stacks;
-    }
-
     @Override
     public boolean isEmpty() {
-        Iterator var1 = this.stacks.iterator();
+        Iterator<ItemStack> var1 = this.stacks.iterator();
 
         ItemStack itemStack;
         do {
@@ -39,7 +29,7 @@ public class InheritedInventory implements Inventory {
                 return true;
             }
 
-            itemStack = (ItemStack)var1.next();
+            itemStack = var1.next();
         } while(itemStack.isEmpty());
 
         return false;
@@ -47,7 +37,7 @@ public class InheritedInventory implements Inventory {
 
     @Override
     public ItemStack getStack(int slot) {
-        return slot >= this.size() ? ItemStack.EMPTY : (ItemStack)this.stacks.get(slot);
+        return slot >= this.size() ? ItemStack.EMPTY : this.stacks.get(slot);
     }
 
     @Override

@@ -2,6 +2,9 @@ package com.drewgifford.autocrafter.screen.crafter;
 
 import com.drewgifford.autocrafter.AutoCrafter;
 import com.drewgifford.autocrafter.inventory.CrafterSlot;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
 import net.minecraft.client.gui.screen.recipebook.RecipeBookProvider;
@@ -10,6 +13,8 @@ import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TexturedButtonWidget;
 import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.ItemStack;
+import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.MutableText;
@@ -17,8 +22,10 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DefaultedList;
 
+import java.util.ArrayList;
 import java.util.List;
 
+@Environment(EnvType.CLIENT)
 public class CrafterScreen extends HandledScreen<CrafterScreenHandler> implements RecipeBookProvider {
 
     private static final Identifier TEXTURE = new Identifier(AutoCrafter.MOD_ID, "textures/gui/crafter_gui.png");
@@ -37,7 +44,6 @@ public class CrafterScreen extends HandledScreen<CrafterScreenHandler> implement
 
         this.narrow = this.width < 379; // If the recipe book made the screen narrow
         initRecipeBook();
-        createButtons();
 
     }
 
@@ -84,6 +90,7 @@ public class CrafterScreen extends HandledScreen<CrafterScreenHandler> implement
 
         this.renderTriggeredArrow(context);
         this.renderLockedSlots(context);
+        this.renderTooltip(context, mouseX, mouseY);
 
     }
 
@@ -98,50 +105,6 @@ public class CrafterScreen extends HandledScreen<CrafterScreenHandler> implement
 
     static MutableText ENABLE_STRING = Text.translatable("gui."+AutoCrafter.MOD_ID+".crafter.button_enable");
     static MutableText DISABLE_STRING = Text.translatable("gui."+AutoCrafter.MOD_ID+".crafter.button_disable");
-
-    private void createButtons(){
-        for (int y = 0; y < 3; ++y) {
-            for (int x = 0; x < 3; ++x) {
-
-                int slotIndex = x + y * 3;
-
-                int offsetX = 30 + x * 18 - 1;
-                int offsetY = 17 + y * 18 - 1;
-
-                MutableText text = DISABLE_STRING;
-                if(this.handler.isLocked(slotIndex)){
-                    text = ENABLE_STRING;
-                }
-
-                ButtonWidget b = ButtonWidget.builder(Text.literal("Lock " + slotIndex), button -> {
-
-                    int buttonIndex = this.buttons.indexOf(button);
-                    boolean isLocked = this.handler.isLocked(buttonIndex);
-
-                    if(isLocked){
-
-                        // Set unlocked
-                        this.handler.setLocked(buttonIndex, false);
-                        button.setTooltip(Tooltip.of(DISABLE_STRING));
-
-                    } else {
-
-                        // Set locked
-                        this.handler.setLocked(buttonIndex, false);
-                        button.setTooltip(Tooltip.of(ENABLE_STRING));
-
-                    }
-
-                })
-                        .dimensions(this.x + offsetX, this.y + offsetY, 18, 18)
-                        .tooltip(Tooltip.of(text))
-                        .build();
-
-                this.buttons.add(b);
-                addDrawableChild(b);
-            }
-        }
-    }
 
     private void renderLockedSlots(DrawContext context){
 
@@ -188,7 +151,11 @@ public class CrafterScreen extends HandledScreen<CrafterScreenHandler> implement
     @Override
     protected void onMouseClick(Slot slot, int slotId, int button, SlotActionType actionType) {
         super.onMouseClick(slot, slotId, button, actionType);
+
         this.recipeBook.slotClicked(slot);
+
+        if(this.client == null) return;
+        this.handleSlotClick(slot, slotId, button, actionType);
     }
 
     @Override
@@ -207,6 +174,50 @@ public class CrafterScreen extends HandledScreen<CrafterScreenHandler> implement
         if(handler.isTriggered()){
             context.drawTexture(TEXTURE, this.x + 90, this.y + 35, 177, 0, 22, 15);
         }
+    }
+
+
+    private void handleSlotClick(Slot slot, int slotId, int button, SlotActionType actionType){
+
+        /*if(!actionType.equals(SlotActionType.PICKUP)) return;
+
+        // Slot verification
+
+        AutoCrafter.LOGGER.info("Slot index: " + slot.getIndex());
+
+        if(CrafterScreenHandler.isValidSlot(slot, this.handler)){
+            boolean isLocked = this.handler.isLocked(slot.getIndex());
+            this.handler.setLocked(slot.getIndex(), !isLocked);
+        }*/
+
+    }
+
+    private void renderTooltip(DrawContext context, int mouseX, int mouseY){
+
+        if(this.client == null) return;
+        
+        Slot slot = this.getSlotAt((float) mouseX, (float) mouseY);
+
+        // Slot verification
+        if(CrafterScreenHandler.isValidSlot(slot, this.handler)) {
+            MutableText text = DISABLE_STRING;
+            if (this.handler.isLocked(slot.getIndex())) text = ENABLE_STRING;
+            context.drawTooltip(this.client.textRenderer, text, mouseX, mouseY);
+        }
+    }
+
+
+    private Slot getSlotAt(double x, double y) {
+        for (int i = 0; i < ((ScreenHandler)this.handler).slots.size(); ++i) {
+            Slot slot = ((ScreenHandler)this.handler).slots.get(i);
+            if (!this.isPointOverSlot(slot, x, y) || !slot.isEnabled()) continue;
+            return slot;
+        }
+        return null;
+    }
+
+    private boolean isPointOverSlot(Slot slot, double pointX, double pointY) {
+        return this.isPointWithinBounds(slot.x, slot.y, 16, 16, pointX, pointY);
     }
 
 }

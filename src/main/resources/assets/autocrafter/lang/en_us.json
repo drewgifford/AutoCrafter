@@ -1,4 +1,7 @@
 {
   "block.autocrafter.crafter": "Crafter",
-  "container.autocrafter.crafter": "Crafter"
+  "container.autocrafter.crafter": "Crafter",
+
+  "gui.autocrafter.crafter.button_disable": "Click to disable slot",
+  "gui.autocrafter.crafter.button_enable": "Click to enable slot"
 }

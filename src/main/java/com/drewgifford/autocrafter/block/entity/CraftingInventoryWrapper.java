@@ -1,12 +1,10 @@
 package com.drewgifford.autocrafter.block.entity;
 
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.inventory.CraftingInventory;
 import net.minecraft.inventory.Inventories;
 import net.minecraft.inventory.RecipeInputInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.recipe.RecipeMatcher;
-import net.minecraft.screen.ScreenHandler;
 import net.minecraft.util.collection.DefaultedList;
 
 import java.util.List;
@@ -55,7 +53,7 @@ public class CraftingInventoryWrapper implements RecipeInputInventory {
     public ItemStack removeStack(int slot, int amount) {
         ItemStack itemStack = Inventories.splitStack(this.stacks, slot, amount);
         if (!itemStack.isEmpty()) {
-            //this.handler.onContentChanged(this);
+
         }
         return itemStack;
     }
@@ -63,7 +61,6 @@ public class CraftingInventoryWrapper implements RecipeInputInventory {
     @Override
     public void setStack(int slot, ItemStack stack) {
         this.stacks.set(slot, stack);
-        //this.handler.onContentChanged(this);
     }
 
     @Override

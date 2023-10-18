@@ -2,21 +2,20 @@ package com.drewgifford.autocrafter.block;
 
 import com.drewgifford.autocrafter.AutoCrafter;
 import com.drewgifford.autocrafter.block.entity.CrafterBlockEntity;
-import net.minecraft.block.*;
+import net.minecraft.block.BlockEntityProvider;
+import net.minecraft.block.BlockState;
+import net.minecraft.block.DispenserBlock;
 import net.minecraft.block.dispenser.DispenserBehavior;
 import net.minecraft.block.dispenser.ItemDispenserBehavior;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.block.entity.DispenserBlockEntity;
 import net.minecraft.block.entity.HopperBlockEntity;
-import net.minecraft.client.gui.screen.ingame.CraftingScreen;
+import net.minecraft.block.entity.LecternBlockEntity;
 import net.minecraft.inventory.Inventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPointer;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Position;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.math.*;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldEvents;
 
@@ -27,7 +26,7 @@ public class CrafterBlock extends DispenserBlock implements BlockEntityProvider 
     private static final DispenserBehavior BEHAVIOR = new ItemDispenserBehavior(){
         @Override
         protected ItemStack dispenseSilently(BlockPointer pointer, ItemStack stack) {
-            Direction direction = (Direction)pointer.state().get(DispenserBlock.FACING);
+            Direction direction = pointer.state().get(DispenserBlock.FACING);
             Position position = DispenserBlock.getOutputLocation(pointer);
             spawnItem(pointer.world(), stack, 6, direction, position);
             return stack;
@@ -52,21 +51,17 @@ public class CrafterBlock extends DispenserBlock implements BlockEntityProvider 
 
         List<ItemStack> itemStacks = crafterBlockEntity.craft();
 
-        if(itemStacks.size() == 0){
+        if(itemStacks.isEmpty()){
             world.syncWorldEvent(WorldEvents.DISPENSER_FAILS, pos, 0);
         } else {
             Direction direction = world.getBlockState(pos).get(FACING);
             Inventory inventory = HopperBlockEntity.getInventoryAt(world, pos.offset(direction));
 
             if (inventory == null) {
-                itemStacks.forEach((itemStack) -> {
-                    BEHAVIOR.dispense(blockPointer, itemStack);
-                });
+                itemStacks.forEach((itemStack) -> BEHAVIOR.dispense(blockPointer, itemStack));
 
             } else {
-                itemStacks.forEach((itemStack) -> {
-                    HopperBlockEntity.transfer(crafterBlockEntity, inventory, itemStack, direction.getOpposite());
-                });
+                itemStacks.forEach((itemStack) -> HopperBlockEntity.transfer(crafterBlockEntity, inventory, itemStack, direction.getOpposite()));
             }
         }
 
@@ -74,19 +69,14 @@ public class CrafterBlock extends DispenserBlock implements BlockEntityProvider 
     }
 
     @Override
-    public boolean hasComparatorOutput(BlockState state) {
-        return true;
-    }
-
-    @Override
     public int getComparatorOutput(BlockState state, World world, BlockPos pos) {
-        CrafterBlockEntity entity = (CrafterBlockEntity) world.getBlockEntity(pos);
 
-        if (entity.hasRecipe()) {
-            return 15;
-        } else {
-            return 0;
+        BlockEntity blockEntity = world.getBlockEntity(pos);
+
+        if(blockEntity != null){
+            return ((CrafterBlockEntity)blockEntity).getComparatorOutput();
         }
+        return 0;
     }
 
     @Override
